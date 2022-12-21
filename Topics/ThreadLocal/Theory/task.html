@@ -1,0 +1,109 @@
+<h2>ThreadLocal</h2>
+<p>The more you study, the more you understand that every new step opens more room for discovery. And multithreading is not an exception. The possibility of creating several threads comes with the problem of needing individual data for each of them. The <code class="language-java">ThreadLocal</code> class is the solution to this problem that we will consider in this topic.</p>
+<h5 id="getting-started-with-threadlocal">Getting started with ThreadLocal</h5>
+<p>The first thing you need to remember is that <code class="language-java">ThreadLocal</code> allows the creation of variables that will only be accessible by a specific thread. So, every thread will have its own, independently initialized copy of the variable.  </p>
+<pre><code class="language-java">ThreadLocal&lt;Integer&gt; threadLocalValue = new ThreadLocal&lt;&gt;();</code></pre>
+<p>And yes, as you can see, it is generic. </p>
+<p>There are two main methods that define the logic of <code class="language-java">ThreadLocal</code> : <code class="language-java">get</code> and <code class="language-java">set</code>.</p>
+<pre><code class="language-java">threadLocalValue.set(123); // every thread sets its value, isolated from other threads
+int result = threadLocalValue.get(); // every thread gets its value, isolated from other threads</code></pre>
+<p>Before you set the value, it equals <code class="language-java">null</code>. </p>
+<p>If you are wondering how this thread-association thing works, first think about how you would implement it. The answer to this question is not too complicated: inside the <code class="language-java">ThreadLocal</code> class, there is a <code class="language-java">ThreadLocalMap</code> with the key <code class="language-java">threadLocalHashCode</code> and the value that you set. </p>
+<h5 id="threadlocal-in-action">ThreadLocal in action</h5>
+<p>Now it's time to see what <code class="language-java">ThreadLocal</code> is capable of!</p>
+<pre><code class="language-java">class MyRunnable implements Runnable {
+    private static final ThreadLocal&lt;Integer&gt; threadLocalCounter = new ThreadLocal&lt;&gt;();
+
+    public void run() {
+
+        if (threadLocalCounter.get() != null) {
+            threadLocalCounter.set(threadLocalCounter.get() + 1);
+        } else {
+            threadLocalCounter.set(0);
+        }
+
+        System.out.println("threadLocalCounter of " + Thread.currentThread().getName() + ": " + threadLocalCounter.get());
+    }
+}</code></pre>
+<p></p><div class="alert alert-primary"><code class="language-java">ThreadLocal</code> instances are typically private static fields because it allows classes to associate their states with a thread.</div>
+<p>Let's start our threads:</p>
+<pre><code class="language-java">MyRunnable commonRunnable = new MyRunnable();
+
+Thread t1 = new Thread(commonRunnable, "first thread");
+Thread t2 = new Thread(commonRunnable, "second thread");
+Thread t3 = new Thread(commonRunnable, "third thread");
+
+// start all threads
+t1.start();
+t2.start();
+t3.start();
+
+// wait for threads to end
+t1.join();
+t2.join();
+t3.join();</code></pre>
+<p>The output will look like this:</p>
+<pre><code class="language-java">threadLocalCounter of second thread: 0
+threadLocalCounter of third thread: 0
+threadLocalCounter of first thread: 0</code></pre>
+<p>In every thread, <code class="language-java">threadLocalCounter</code> is equal to zero because the value of <code class="language-java">ThreadLocal</code> is accessible only by a specific thread, so incrementing by one never happens.</p>
+<p></p><div class="alert alert-primary"> As you already know we can't predict the order of the output. </div>
+<h5 id="more-details">More details</h5>
+<p>You can think of the <code class="language-java">ThreadLocal</code> class as a grandpa — it was created in Java 2. But, since time leaves its mark, the appearance of functional programming in Java 8 brought slight changes to our class: the new method <code class="language-java">withInitial</code> was added.</p>
+<p>It creates a new instance of <code class="language-java">ThreadLocal</code> and sets its initial value by taking <code class="language-java">Supplier</code> as a parameter:</p>
+<pre><code class="language-java">ThreadLocal&lt;Integer&gt; threadLocalA = ThreadLocal.withInitial(() -&gt; 1);
+ThreadLocal&lt;List&lt;String&gt;&gt; threadLocalB = ThreadLocal.withInitial(ArrayList::new);
+</code></pre>
+<p>Another commonly used method is a simple <code class="language-java">remove</code>:  </p>
+<pre><code class="language-java">threadLocalValue.remove(); // removes value of ThreadLocal for the current thread
+</code></pre>
+<p><strong style="font-size: 1.5em;">To use... or not to use?</strong></p>
+<p>There's one last thing we need to discuss: when do you use this class? There are two main cases:</p>
+<ul>
+<li>storing thread-specific data (something like <code class="language-java">UserInfo</code>, <code class="language-java">TransactionInfo</code>)</li>
+</ul>
+<p>Imagine you have a web server that receives requests and has many threads. Every thread makes transactions to a database (sounds like a common situation, don't you think?). It would be convenient to store transaction data in <code class="language-java">ThreadLocal</code>. Every thread would have its own copy of <code class="language-java">ThreadLocal</code> with transaction data received from the request. While processing the request, the thread will get transaction data or modify it if necessary. Transaction data will be stored until your thread receives a new request and updates it. </p>
+<ul>
+<li>working with non-thread-safe classes (creating an instance of the class for each thread)</li>
+</ul>
+<p>Let's consider an example for the second clause. <code class="language-java">SimpleDateFormat</code> is a class for formatting and parsing dates:</p>
+<pre><code class="language-java">public class MyRunnable implements Runnable {
+
+    // SimpleDateFormat is not thread-safe, so we have separate format instance for each thread
+    ThreadLocal&lt;SimpleDateFormat&gt; threadLocal = ThreadLocal.withInitial(() -&gt; new SimpleDateFormat("yyyy/MM/dd HH:mm"));
+
+    @Override
+    public void run() {
+        System.out.println(Thread.currentThread().getName() + " default format = " + threadLocal.get().toPattern());
+
+        // change for specific thread
+        threadLocal.set(new SimpleDateFormat());
+
+        System.out.println(Thread.currentThread().getName() + " format = " + threadLocal.get().toPattern());
+    }
+}</code></pre>
+<p>Now, let's run it:</p>
+<pre><code class="language-java">MyRunnable commonRunnable = new MyRunnable();
+
+Thread t1 = new Thread(commonRunnable, "first thread");
+Thread t2 = new Thread(commonRunnable, "second thread");
+Thread t3 = new Thread(commonRunnable, "third thread");
+
+// start all threads
+
+// wait for threads to end</code></pre>
+<p>Our output will be:</p>
+<pre><code class="language-java">second thread default format = yyyy/MM/dd HH:mm
+third thread default format = yyyy/MM/dd HH:mm
+first thread default format = yyyy/MM/dd HH:mm
+first thread format = M/d/yy, h:mm a
+third thread format = M/d/yy, h:mm a
+second thread format = M/d/yy, h:mm a</code></pre>
+<p>As you can see, every thread's format has changed its value from default to the standard one.</p>
+<p><strong style="font-size: 1.5em;">Conclusion</strong></p>
+<p>Rumor has it that <code class="language-java">ThreadLocal</code> is a popular topic of discussion in interviews about multithreading. So, let's be prepared for it:</p>
+<ul>
+<li><code class="language-java">ThreadLocal</code> value is accessible only by a specific thread.</li>
+<li>Usually, <code class="language-java">ThreadLocal</code> instances are private static fields (the class associates its state with a thread).</li>
+<li>Use it to store thread-specific data and to work with non-thread-safe classes.</li>
+</ul>

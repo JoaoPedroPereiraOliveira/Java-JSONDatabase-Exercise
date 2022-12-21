@@ -1,0 +1,12 @@
+<h2>Thread-safe account</h2>
+<p>You have a class named <code class="java">Account</code>. It has a <code class="java">long</code> field storing the current balance. The account has three not-implemented methods:</p>
+
+<ul>
+	<li><code class="java">deposit</code> method adds an amount to the balance;</li>
+	<li><code class="java">withdraw</code> method subtracts an amount from the balance if the account has enough money. The method must return <code class="java">true</code> if the operation is successful, otherwise, it returns <code class="java">false</code>;</li>
+	<li><code class="java">getBalance</code> method returns the current balance.</li>
+</ul>
+
+<p>Implement the given methods. The class should work correctly with multiple threads. The testing system will create threads and call methods on the same instance of <code class="java">Account</code>.</p>
+
+<p>Do not make the class public.</p><br><br><font color="gray">Memory limit: 256 MB</font><br><font color="gray">Time limit: 20 seconds</font><br><br>

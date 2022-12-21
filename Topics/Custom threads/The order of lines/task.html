@@ -1,0 +1,29 @@
+<h2>The order of lines</h2>
+<p>Here's a class that extends the <strong>Thread </strong>class and overrides the <strong>run</strong> method:</p>
+
+<pre><code class="language-java">class MyThread extends Thread {
+
+    public MyThread(String name) {
+        super(name);
+    }
+
+    @Override
+    public void run() {
+        System.out.println("Hello from " + getName());
+    }
+}</code></pre>
+
+<p><br>
+Take a look at a code snippet:</p>
+
+<pre><code class="language-java">MyThread t1 = new MyThread("My-thread-1");
+t1.start();
+
+MyThread t2 = new MyThread("My-thread-2");
+t2.start();
+
+System.out.println("Finished");</code></pre>
+
+<p> </p>
+
+<p>Select the correct statement about the order of lines in the output:</p>
